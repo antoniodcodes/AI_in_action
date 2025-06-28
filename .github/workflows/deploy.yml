@@ -60,5 +60,5 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build -t ${{ env.DOCKERHUB_USERNAME }}/flask-app:latest .
-          docker push ${{ env.DOCKERHUB_USERNAME }}/flask-app:latest
+          docker build -t $DOCKERHUB_USERNAME/flask-app:latest .
+          docker push $DOCKERHUB_USERNAME/flask-app:latest
