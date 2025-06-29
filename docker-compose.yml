@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "5851:5851"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=app.py
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5851
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import requests; requests.get('http://localhost:5851/health')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/tmp
+    volumes:
+      - app-logs:/app/logs
+    networks:
+      - app-network
+
+  # Development service (optional)
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "5852:5851"
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+      - FLASK_HOST=0.0.0.0
+      - FLASK_PORT=5851
+    volumes:
+      - .:/app
+    profiles:
+      - dev
+
+volumes:
+  app-logs:
+
+networks:
+  app-network:
+    driver: bridge

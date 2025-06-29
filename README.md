@@ -1,178 +1,211 @@
-# AI_in_action
+# Flask Application with Docker Best Practices
 
-A simple Flask web application that displays "Hello World" when accessed.
+This is a Flask application containerized with Docker following DevOps best practices for security, performance, and maintainability. The application provides a weather API service using the Open-Meteo API.
 
-## Project Overview
+## 🚀 Features
 
-This is a basic Flask application that runs on port 5851 and serves a simple "Hello World" message. The application is containerized using Docker for easy deployment and distribution.
+- **Multi-stage Docker build** for smaller production images
+- **Non-root user** for enhanced security
+- **Health checks** for container monitoring
+- **Production-ready configuration** with environment variables
+- **Security hardening** with read-only filesystem and no-new-privileges
+- **Optimized layer caching** for faster builds
+- **Weather API integration** with Open-Meteo service
+- **JSON API endpoints** with proper response formatting
 
-## Prerequisites
+## 🏗️ Architecture
 
-Before deploying this application, ensure you have the following installed:
+The application uses a multi-stage Docker build:
 
-- [Docker](https://docs.docker.com/get-docker/) (version 20.10 or higher)
-- [Docker Compose](https://docs.docker.com/compose/install/) (optional, for easier management)
+- **Builder stage**: Installs dependencies and creates virtual environment
+- **Production stage**: Creates minimal runtime image with security hardening
 
-## Docker Deployment Steps
+### API Endpoints
 
-### 1. Clone the Repository
+- `GET /` - Welcome page
+- `GET /health` - Health check endpoint
+- `GET /weather` - Weather forecast endpoint (requires latitude and longitude parameters)
 
-```bash
-git clone <repository-url>
-cd AI_In_Action
-```
+## 📦 Quick Start
 
-### 2. Build the Docker Image
-
-```bash
-docker build -t ai-in-action .
-```
-
-This command will:
-
-- Use Python 3.11 slim image as the base
-- Install all dependencies from `requirements.txt`
-- Copy the application code to the container
-- Set up the working directory and environment variables
-
-### 3. Run the Docker Container
+### Using Docker Compose (Recommended)
 
 ```bash
-docker run -d -p 5851:5851 --name ai-in-action-app ai-in-action
-```
-
-**Parameters explained:**
-
-- `-d`: Run the container in detached mode (background)
-- `-p 5851:5851`: Map port 5851 from the host to port 5851 in the container
-- `--name ai-in-action-app`: Give the container a friendly name
-- `ai-in-action`: The name of the Docker image to run
-
-### 4. Verify the Deployment
-
-Once the container is running, you can access the application by opening your web browser and navigating to:
-
-```
-http://localhost:5851
-```
-
-You should see "Hello World" displayed in your browser.
-
-### 5. Container Management
-
-**Stop the container:**
-
-```bash
-docker stop ai-in-action-app
-```
-
-**Start the container:**
-
-```bash
-docker start ai-in-action-app
-```
-
-**Remove the container:**
-
-```bash
-docker rm ai-in-action-app
-```
-
-**View container logs:**
-
-```bash
-docker logs ai-in-action-app
-```
-
-**View running containers:**
-
-```bash
-docker ps
-```
-
-## Alternative: Using Docker Compose
-
-If you prefer using Docker Compose for easier management, create a `docker-compose.yml` file:
-
-```yaml
-version: "3.8"
-services:
-  ai-in-action:
-    build: .
-    ports:
-      - "5851:5851"
-    container_name: ai-in-action-app
-    restart: unless-stopped
-```
-
-Then run:
-
-```bash
+# Production deployment
 docker-compose up -d
+
+# Development mode
+docker-compose --profile dev up -d app-dev
 ```
 
-To stop:
+### Using Docker directly
 
 ```bash
-docker-compose down
+# Build the image
+docker build -t flask-app .
+
+# Run in production mode
+docker run -d \
+  --name flask-app \
+  -p 5851:5851 \
+  -e FLASK_ENV=production \
+  flask-app
 ```
 
-## Development
+## 🔧 Configuration
 
-### Local Development Setup
+### Environment Variables
 
-1. Create a virtual environment:
+| Variable     | Default      | Description                                |
+| ------------ | ------------ | ------------------------------------------ |
+| `FLASK_ENV`  | `production` | Flask environment (development/production) |
+| `FLASK_APP`  | `app.py`     | Flask application entry point              |
+| `FLASK_HOST` | `0.0.0.0`    | Host to bind Flask server                  |
+| `FLASK_PORT` | `5851`       | Port to bind Flask server                  |
+
+### Health Check
+
+The application includes a health check endpoint at `/health` that returns:
+
+```json
+{ "status": "healthy" }
+```
+
+### Weather API
+
+The application provides a weather forecast endpoint that integrates with the Open-Meteo API:
 
 ```bash
-python -m venv env
-source env/bin/activate  # On Windows: env\Scripts\activate
+# Get weather forecast for specific coordinates
+curl "http://localhost:5851/weather?latitude=40.7128&longitude=-74.0060"
 ```
 
-2. Install dependencies:
+**Parameters:**
+
+- `latitude` (required): Latitude coordinate (-90 to 90)
+- `longitude` (required): Longitude coordinate (-180 to 180)
+
+**Response:** JSON weather data from Open-Meteo API
+
+## 🔒 Security Features
+
+- **Non-root user**: Application runs as `appuser` instead of root
+- **Read-only filesystem**: Container filesystem is read-only except for `/tmp` and `/var/tmp`
+- **No new privileges**: Container cannot gain additional privileges
+- **Minimal base image**: Uses Python slim image for smaller attack surface
+- **Pinned dependencies**: All Python packages are version-pinned
+- **Multi-stage build**: Build tools are not included in production image
+
+## 📊 Monitoring
+
+### Health Check
 
 ```bash
-pip install -r requirements.txt
+# Check container health
+docker ps
+docker inspect <container_name> | grep Health -A 10
+
+# Manual health check
+curl http://localhost:5851/health
 ```
 
-3. Run the application:
+### Logs
 
 ```bash
-python app.py
+# View application logs
+docker-compose logs -f app
+
+# View logs for specific container
+docker logs <container_name>
 ```
 
-The application will be available at `http://localhost:5851`
+## 🛠️ Development
 
-## Project Structure
+### Local Development
 
+```bash
+# Run in development mode
+docker-compose --profile dev up -d app-dev
+
+# Access application
+curl http://localhost:5852/
 ```
-AI_In_Action/
-├── app.py              # Main Flask application
-├── requirements.txt    # Python dependencies
-├── Dockerfile         # Docker configuration
-├── README.md          # This file
-└── .gitignore         # Git ignore rules
+
+### Building for Different Environments
+
+```bash
+# Build production image
+docker build --target production -t flask-app:prod .
+
+# Build development image
+docker build --target builder -t flask-app:dev .
 ```
 
-## Troubleshooting
+## 📋 Best Practices Implemented
+
+### Docker Best Practices
+
+- ✅ Multi-stage builds for smaller images
+- ✅ Non-root user for security
+- ✅ Health checks for monitoring
+- ✅ Proper layer caching
+- ✅ Read-only filesystem
+- ✅ No new privileges
+- ✅ Minimal base image
+- ✅ Proper labels and metadata
+
+### Security Best Practices
+
+- ✅ Pinned base image version
+- ✅ Pinned dependency versions
+- ✅ Non-root user execution
+- ✅ Read-only filesystem
+- ✅ Security options enabled
+- ✅ Minimal attack surface
+
+### Performance Best Practices
+
+- ✅ Optimized layer caching
+- ✅ Multi-stage builds
+- ✅ Minimal production image
+- ✅ Efficient dependency installation
+
+## 🚨 Security Considerations
+
+1. **Never run containers as root** - This application runs as `appuser`
+2. **Use read-only filesystem** - Implemented with `read_only: true`
+3. **Pin all dependencies** - All versions are explicitly specified
+4. **Regular security updates** - Keep base images and dependencies updated
+5. **Network security** - Use custom networks and limit port exposure
+
+## 📝 Troubleshooting
 
 ### Common Issues
 
-1. **Port already in use**: If port 5851 is already in use, you can map to a different port:
+1. **Permission denied errors**
 
-   ```bash
-   docker run -d -p 8080:5851 --name ai-in-action-app ai-in-action
-   ```
+   - Ensure files are owned by `appuser:appuser`
+   - Check file permissions in mounted volumes
 
-   Then access the app at `http://localhost:8080`
+2. **Health check failures**
 
-2. **Container won't start**: Check the logs for errors:
+   - Verify the application is running on the correct port
+   - Check if the `/health` endpoint is accessible
 
-   ```bash
-   docker logs ai-in-action-app
-   ```
+3. **Build failures**
+   - Ensure all dependencies are properly specified in `requirements.txt`
+   - Check for syntax errors in Dockerfile
 
-3. **Build fails**: Ensure all files are present and the Dockerfile is in the root directory.
+### Debug Mode
 
-## License
+```bash
+# Run with debug output
+docker-compose up app
 
-[Add your license information here]
+# Access container shell
+docker exec -it <container_name> /bin/bash
+```
+
+## 📄 License
+
+This project follows security best practices for containerized applications. Always review and update security configurations based on your specific requirements.
